@@ -1,6 +1,6 @@
 <!-- GFM-TOC -->
 * [一、解决的问题](#一解决的问题)
-* [二、与虚拟机的比较](#二与虚拟机的比较)
+* [二、Docker 核心技术](#二Docker 核心技术)
 * [三、优势](#三优势)
 * [四、使用场景](#四使用场景)
 * [五、镜像与容器](#五镜像与容器)
@@ -14,21 +14,59 @@
 
 Docker 主要解决环境配置问题，它是一种虚拟化技术，对进程进行隔离，被隔离的进程独立于宿主操作系统和其它隔离的进程。使用 Docker 可以不修改应用程序代码，不需要开发人员学习特定环境下的技术，就能够将现有的应用程序部署在其它机器上。
 
-<div align="center"> <img src="pics/011f3ef6-d824-4d43-8b2c-36dab8eaaa72-1.png" width="400px"/> </div><br>
+<div align="center"> <img src="../pics/011f3ef6-d824-4d43-8b2c-36dab8eaaa72-1.png" width="400px"/> </div><br>
 
-# 二、与虚拟机的比较
+# 二、Docker 核心技术
+
+## 核心技术
+
+Docker 核心技术主要从以下几个方面实现：
+
+- 进程命名空间，通过进程命名空间，将 docker 进程和 宿主进程进行隔离
+
+- 文件隔离，通过加载虚拟挂载点，重设 root 目录等等，将文件系统进行隔离
+
+- 物理资源的隔离，通过 CGroups（Control Groups），限制容器在 CPU，内存，磁盘IO、网络上的使用率，以此来隔离容器间的资源分配。
+
+- 网络，docker 网络模式使用桥接的方式进行
+
+  > 我的理解是，docker 层做了一个 路由器，所有的容器进程通过该路由器网关去连接访问外部网络
+
+- Docker 镜像的概念：Dockerfile 中的每条命令会形成一个 diff 层，每个 diff 层都是只读的，只有最上面的层是可写的。这个操作通过 UnionFS 实现。通过 AUFS（Advanced UnionFS），可以将未修改的镜像层进行联合挂载，从而提高读写效率。
+
+## 三剑客
+
+<div align="center"> <img src="../pics/6CB8F3EC-C722-4C20-B6EB-E4DB1EAD2962.png" width="500"/> </div><br>
+
+### Docker Machine
+
+Docker Machine就是创建Docker环境的机器，简单说就是有了Docker Machine就可以在任何系统任何平台上快速的搭建Docker环境了。打开cmd窗口，执行命令 docker-machine create --driver=virtualbox machine1 该命令以virtualbox为介质快速创建一个包含有docker环境的虚拟机。命令执行完成之后打开virtualbox界面如下：可以看到machine1正在运行，双击进入该虚拟机可以执行docker的所有命令。你可以利用上面的命令继续创建多个含有Docker Engine的多个虚拟机。
+
+### Docker Compose
+
+Docker Compose可以有组织的启动同属于一个服务的多个容器换句话说 当一个服务包含多个容器的时候，docker compose可以通过yaml文件预先配置，然后统一启动。
+
+### swarm
+
+上面两位剑客完成了Docker环境搭建和容器的编排工作，swarm则用来完成多台机器（可物理可虚拟）之间容器集群的管理，Swarm是docker自带的一种模式，内嵌到docker里，不用额外安装。
+
+- **节点**：NODE，一个节点本质上是一个包含Docker Engine环境的机器，可以是物理机也可以是虚拟机，我们这里可以是自己构建的docker machine。Node分为两种，一种为leader，一种为worker，前者负责分派工作，后者负责执行工作，同一个NODE可以同时有两种角色。
+- **服务**：Service，运行在节点上包含一个或者多个task的综合体，每个task都由一个容器和容器内部运行的一些命令共同代表。
+- **负载均衡**：使用内部负载均衡，访问任何节点端口都会通过负载均衡找到服务，即便当前node没有服务
+
+## 与虚拟机的对比
 
 虚拟机也是一种虚拟化技术，它与 Docker 最大的区别在于它是通过模拟硬件，并在硬件上安装操作系统来实现。
 
-<div align="center"> <img src="pics/be608a77-7b7f-4f8e-87cc-f2237270bf69.png" width="500"/> </div><br>
+<div align="center"> <img src="../pics/be608a77-7b7f-4f8e-87cc-f2237270bf69.png" width="500"/> </div><br>
 
-## 启动速度
+### 启动速度
 
 启动虚拟机需要先启动虚拟机的操作系统，再启动应用，这个过程非常慢；
 
 而启动 Docker 相当于启动宿主操作系统上的一个进程。
 
-## 占用资源
+### 占用资源
 
 虚拟机是一个完整的操作系统，需要占用大量的磁盘、内存和 CPU 资源，一台机器只能开启几十个的虚拟机。
 
@@ -74,7 +112,7 @@ Docker 轻量级的特点使得它很适合用于部署、维护、组合微服�
 
 构建容器时，通过在镜像的基础上添加一个可写层（writable layer），用来保存着容器运行过程中的修改。
 
-<div align="center"> <img src="pics/docker-filesystems-busyboxrw.png"/> </div><br>
+<div align="center"> <img src="../pics/docker-filesystems-busyboxrw.png"/> </div><br>
 
 # 参考资料
 
@@ -86,15 +124,3 @@ Docker 轻量级的特点使得它很适合用于部署、维护、组合微服�
 - [为什么要使用 Docker？](https://yeasy.gitbooks.io/docker_practice/introduction/why.html)
 - [What is Docker](https://www.docker.com/what-docker)
 - [持续集成是什么？](http://www.ruanyifeng.com/blog/2015/09/continuous-integration.html)
-
-
-
-
-
-# 微信公众号
-
-
-更多精彩内容将发布在微信公众号 CyC2018 上，你也可以在公众号后台和我交流学习和求职相关的问题。另外，公众号提供了该项目的 PDF 等离线阅读版本，后台回复 "下载" 即可领取。公众号也提供了一份技术面试复习大纲，不仅系统整理了面试知识点，而且标注了各个知识点的重要程度，从而帮你理清多而杂的面试知识点，后台回复 "大纲" 即可领取。我基本是按照这个大纲来进行复习的，对我拿到了 BAT 头条等 Offer 起到很大的帮助。你们完全可以和我一样根据大纲上列的知识点来进行复习，就不用看很多不重要的内容，也可以知道哪些内容很重要从而多安排一些复习时间。
-
-
-<br><div align="center"><img width="320px" src="https://cs-notes-1256109796.cos.ap-guangzhou.myqcloud.com/other/公众号海报6.png"></img></div>
